@@ -16,14 +16,30 @@ jobs:
       - name: Unzip project
         run: unzip -o app.zip -d project
 
-      - name: Remove obsolete WorkManager-based file (replaced by NotifAlarmReceiver)
-        run: rm -f project/app/src/main/java/ir/pnjere/browser/NotifPollWorker.java
-
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
+
+      # کیستور دیباگ رو بین اجراهای مختلف کش می‌کنیم تا امضای همه‌ی APKها ثابت بمونه
+      # (وگرنه هر بار یه کیستور تصادفی جدید ساخته می‌شد و گوشی هر build رو
+      #  به‌جای «آپدیت»، یه اپ کاملاً جدید و ناشناس حساب می‌کرد که نصبش کندتره)
+      - name: Cache debug keystore
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: android-debug-keystore-v1
+
+      - name: Ensure debug keystore exists
+        run: |
+          mkdir -p ~/.android
+          if [ ! -f ~/.android/debug.keystore ]; then
+            keytool -genkey -v -keystore ~/.android/debug.keystore \
+              -storepass android -alias androiddebugkey -keypass android \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -dname "CN=Android Debug,O=Android,C=US"
+          fi
 
       # به‌جای ./gradlew (که فایلش تو زیپ نبود)، خود Gradle رو مستقیم نصب می‌کنیم
       - name: Setup Gradle
