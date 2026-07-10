@@ -1,15 +1,13 @@
 name: Build APK
- 
+
 on:
   push:
     branches: [ "main", "master" ]
   workflow_dispatch:
- 
+
 jobs:
   build:
     runs-on: ubuntu-latest
-    env:
-      HAS_KEYSTORE: ${{ secrets.KEYSTORE_BASE64 != '' }}
 
     steps:
       - name: Checkout code
@@ -66,23 +64,23 @@ jobs:
       # بخش هیچ‌وقت اجرا نمی‌شد و همیشه فقط app-debug.apk ساخته می‌شد — همونی که
       # امضای متغیر داره و باعث می‌شه بازار هر آپدیت رو نصب جدید حساب کنه.
       - name: Decode Keystore
-        if: ${{ env.HAS_KEYSTORE == 'true' }}
+        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
         run: echo "$KEYSTORE_BASE64" | base64 -d > project/app/release.keystore
 
       - name: Build Signed Release APK
-        if: ${{ env.HAS_KEYSTORE == 'true' }}
+        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
         working-directory: project
         run: |
           gradle assembleRelease \
-            -Pandroid.injected.signing.store.file=release.keystore \
+            -Pandroid.injected.signing.store.file=app/release.keystore \
             -Pandroid.injected.signing.store.password=${{ secrets.KEYSTORE_PASSWORD }} \
             -Pandroid.injected.signing.key.alias=${{ secrets.KEY_ALIAS }} \
             -Pandroid.injected.signing.key.password=${{ secrets.KEY_PASSWORD }}
 
       - name: Upload Release APK
-        if: ${{ env.HAS_KEYSTORE == 'true' }}
+        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
         uses: actions/upload-artifact@v4
         with:
           name: app-release
